@@ -86,6 +86,67 @@ This approach would not work however, because once you parse the JSON into an ob
 ## Traversing char by char
 I gave the feedback to chatGPT and it understood, the next version it came up with is one that traverses the string char by char and handles each separately.
 
-https://github.com/chcharcharlie/rust-json-str-redactor/commit/88747ec7f670248728c99c76eae4fe8e3beeb6e1
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/8a879d582b19b4fe08e6f4eb9e209a4028792f98
 
 The program runs fine, and for a while I thought he already got it done.
+
+## Debugging
+But then the struggle begins, the program would always miss something. It works for one test case, but once I tweak the test case ever so slightly, it breaks. It's as if there were endless of edge cases, just that they were all not so "edgy".
+
+It didn't recognize which strings were keys and which were values and updated according to my prompt:
+
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/23688f2897f5c825e129ba4c2577d2a27467ca51
+
+Had problems with popping keys out of the stack and missing values:
+
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/ffc0ab264f014728426dcc6ca822702b232e4efd
+
+I asked it to connect and merge ranges at the end instead of sending a bunch of small ranges:
+
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/7ea00765b3c11219d3fe8b326e6967508f0e42d9
+
+Tried to handle missing non string values:
+
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/51e5d71f8c5f34ce2100aeb5b90403dd979d8bb1
+
+`Sometimes you find that even though he says he's updating the code, he's actually not.`
+
+## Deeper human intervene
+Over time I found out, for most of the cases, if I only describe the symptom and expected behavior, chatGPT will be unable to get it going further. It repeats the same apologies but then makes cosmetic changes or sometimes even make it worse.
+
+`I had to examine the code carefully, including add some printed logs and let it know where I think is wrong.`
+
+Then it continued on improving with my help.
+
+Multiple tries to handle stach pushing correctly:
+
+baeb911517a1cb7464094e632944c3f5f939f63a
+d7cb53be6a796d0d2c0849245121f92a2e744418
+e8ecfdedea599e2293ae8675218164ff01d7f604
+
+Introduced capture_all and brace/bracket_counts to deal with cases where entire subobject is included:
+
+b19d058f1e001350cc1cdf4a95ac0bb4f2d7cff8
+
+Debug closing double quotes:
+
+2e6aec83c75937008ba7e8ab4670896c75602cd2
+
+Deal with capture_all on reverse brackets/braces:
+
+e95ab6471d6e01e0c5d5f99563df38211280eceb
+
+Endless back and force debugging with the `capture_all` handling...
+
+9bf2d3e5536374861f18eb201a5f825722d6c081
+8a1d81eb03f118e142d16dcb47b87801ae726656
+175caf20f2e0a8076ab3c0ff223cac1931b2ab87
+e871d936f8ca7cf3ad5a1d0cb3383e164779f308
+
+Handle `in_string` correctly for brackets/braces:
+
+a5b2f620efedf1030fbba7468a3a8556401a8c3a
+
+Deal with structure symbols in string:
+
+14f8f64f1babef1a07807bb5218e69e2e41cea02
