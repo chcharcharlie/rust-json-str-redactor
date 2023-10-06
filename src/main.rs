@@ -16,16 +16,23 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
         }
 
         match c {
-            '{' => {
+            '{' | '[' => {
                 if stack == target_keys {
-                    start_idx = Some(i);
                     capture_all = true;
+                    start_idx = Some(i);
                 }
-                brace_count += 1;
+                if !capture_all {
+                    ranges.push([i, i + 1]);
+                }
+                if c == '{' {
+                    brace_count += 1;
+                }
             }
-            '}' => {
-                brace_count -= 1;
-                if capture_all && brace_count == 0 {
+            '}' | ']' => {
+                if c == '}' {
+                    brace_count -= 1;
+                }
+                if capture_all && (brace_count == 0 || c == ']') {
                     if let Some(start) = start_idx {
                         ranges.push([start, i + 1]);
                     }
@@ -35,23 +42,58 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                     ranges.push([i, i + 1]);
                 }
             }
-            '[' => {
-                if stack == target_keys {
-                    start_idx = Some(i);
-                    capture_all = true;
-                }
-                bracket_count += 1;
-            }
-            ']' => {
-                bracket_count -= 1;
-                if capture_all && bracket_count == 0 {
-                    if let Some(start) = start_idx {
-                        ranges.push([start, i + 1]);
+            '"' => {
+                if capture_all {
+                    if in_string {
+                        ranges.push([start_idx.unwrap(), i + 1]);
+                    } else {
+                        start_idx = Some(i);
                     }
-                    start_idx = None;
-                    capture_all = false;
-                } else if !capture_all {
-                    ranges.push([i, i + 1]);
+                    in_string = !in_string;
+                } else {
+                    if in_string {
+                        // End of string
+                        if let Some(start) = start_idx {
+                            if stack == target_keys || is_key {
+                                ranges.push([start, i + 1]);
+                            }
+                            start_idx = None;
+                        }
+                    } else {
+                        // Start of string
+                        start_idx = Some(i);
+                        if let Some(next_double_quote) = json[i + 1..].find('"') {
+                            let next_double_quote = next_double_quote + i + 1;
+                            let content = &json[i + 1..next_double_quote];
+                            if json[next_double_quote + 1..]
+                                .chars()
+                                .next()
+                                .unwrap_or_default()
+                                .is_whitespace()
+                            {
+                                let next_relevant_char = json[next_double_quote + 1..]
+                                    .chars()
+                                    .skip_while(|&ch| ch.is_whitespace())
+                                    .next()
+                                    .unwrap_or_default();
+                                is_key = next_relevant_char == ':';
+                            } else {
+                                is_key = json[next_double_quote + 1..]
+                                    .chars()
+                                    .next()
+                                    .unwrap_or_default()
+                                    == ':';
+                            }
+                            if is_key {
+                                stack.push(content.to_string());
+                            }
+                            skip_char = true;
+                        } else {
+                            // If there is no closing double quote, end the loop to prevent invalid behavior
+                            break;
+                        }
+                    }
+                    in_string = !in_string;
                 }
             }
             ',' => {
@@ -88,51 +130,6 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                         ranges.push([i + 1, i + 1 + space_length]);
                     }
                 }
-            }
-            '"' => {
-                if in_string {
-                    // End of string
-                    if let Some(start) = start_idx {
-                        if stack == target_keys || is_key {
-                            ranges.push([start, i + 1]);
-                        }
-                        start_idx = None;
-                    }
-                } else {
-                    // Start of string
-                    start_idx = Some(i);
-                    if let Some(next_double_quote) = json[i + 1..].find('"') {
-                        let next_double_quote = next_double_quote + i + 1;
-                        let content = &json[i + 1..next_double_quote];
-                        if json[next_double_quote + 1..]
-                            .chars()
-                            .next()
-                            .unwrap_or_default()
-                            .is_whitespace()
-                        {
-                            let next_relevant_char = json[next_double_quote + 1..]
-                                .chars()
-                                .skip_while(|&ch| ch.is_whitespace())
-                                .next()
-                                .unwrap_or_default();
-                            is_key = next_relevant_char == ':';
-                        } else {
-                            is_key = json[next_double_quote + 1..]
-                                .chars()
-                                .next()
-                                .unwrap_or_default()
-                                == ':';
-                        }
-                        if is_key {
-                            stack.push(content.to_string());
-                        }
-                        skip_char = true;
-                    } else {
-                        // If there is no closing double quote, end the loop to prevent invalid behavior
-                        break;
-                    }
-                }
-                in_string = !in_string;
             }
             _ => {
                 if !in_string && !capture_all {
