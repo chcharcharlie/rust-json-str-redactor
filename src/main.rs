@@ -23,18 +23,28 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                 }
                 ranges.push([i, i + 1]);
 
-                // Pop key from stack after processing its value
-                if c == '}' || c == ']' {
-                    if is_key {
-                        stack.pop();
-                        is_key = false;
-                    }
+                // Pop the key from the stack after its value is processed
+                if (c == '}' || c == ']') && !in_string {
+                    stack.pop();
                 }
             }
             ':' => {
                 if !in_string {
                     ranges.push([i, i + 1]);
                     is_key = false;
+                    // Capture the space after the colon
+                    if json[i + 1..]
+                        .chars()
+                        .next()
+                        .unwrap_or_default()
+                        .is_whitespace()
+                    {
+                        let space_length = json[i + 1..]
+                            .chars()
+                            .take_while(|&ch| ch.is_whitespace())
+                            .count();
+                        ranges.push([i + 1, i + 1 + space_length]);
+                    }
                 }
             }
             '"' => {
@@ -45,9 +55,6 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                             ranges.push([start, i + 1]);
                         }
                         start_idx = None;
-                    }
-                    if is_key {
-                        stack.pop();
                     }
                 } else {
                     // Start of string
