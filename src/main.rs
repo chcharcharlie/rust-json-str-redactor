@@ -5,6 +5,9 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
     let mut start_idx: Option<usize> = None;
     let mut skip_char = false;
     let mut is_key = false;
+    let mut brace_count = 0;
+    let mut bracket_count = 0;
+    let mut capture_all = false;
 
     for (i, c) in json.chars().enumerate() {
         if skip_char {
@@ -13,7 +16,40 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
         }
 
         match c {
-            '{' | '}' | '[' | ']' | ',' => {
+            '{' => {
+                if stack == target_keys {
+                    start_idx = Some(i);
+                    capture_all = true;
+                }
+                brace_count += 1;
+            }
+            '}' => {
+                brace_count -= 1;
+                if capture_all && brace_count == 0 {
+                    ranges.push([start_idx.unwrap(), i + 1]);
+                    start_idx = None;
+                    capture_all = false;
+                }
+            }
+            '[' => {
+                if stack == target_keys {
+                    start_idx = Some(i);
+                    capture_all = true;
+                }
+                bracket_count += 1;
+            }
+            ']' => {
+                bracket_count -= 1;
+                if capture_all && bracket_count == 0 {
+                    ranges.push([start_idx.unwrap(), i + 1]);
+                    start_idx = None;
+                    capture_all = false;
+                }
+            }
+            ',' => {
+                if capture_all {
+                    continue;
+                }
                 // If we were processing a non-string value, capture its range
                 if let Some(start) = start_idx {
                     if stack == target_keys {
@@ -22,9 +58,7 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                     start_idx = None;
                 }
                 ranges.push([i, i + 1]);
-
-                // Pop the key from the stack after its value is processed
-                if (c == '}' || c == ']' || c == ',') && !in_string {
+                if !in_string {
                     stack.pop();
                 }
             }
@@ -88,7 +122,7 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                 in_string = !in_string;
             }
             _ => {
-                if !in_string {
+                if !in_string && !capture_all {
                     if start_idx.is_none() {
                         start_idx = Some(i);
                     }
@@ -136,7 +170,7 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
 
 fn main() {
     let json = r#"{"a": {"b":"c","d":1,"e":[{"f":"g"}]}}"#;
-    let keys = ["a", "d"];
+    let keys = ["a", "e"];
     let ranges = find_ranges(json, &keys);
-    println!("{:?}", ranges); // Expected: [[0, 11], [14, 31], [34, 38]]
+    println!("{:?}", ranges); // Expected: [[0, 11], [14, 19], [20, 38]]
 }
