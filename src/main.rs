@@ -237,9 +237,40 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
     merged_ranges
 }
 
+fn redact_json(json: &str, ranges: Vec<[usize; 2]>) -> String {
+    let mut result = String::new();
+    let mut last_idx = 0;
+
+    for range in ranges {
+        // Append the redacted portion if there's a gap between ranges
+        if last_idx < range[0] {
+            result.push_str("\"<REDACTED>\"");
+        }
+
+        // Append the preserved portion from the range
+        result.push_str(&json[range[0]..range[1]]);
+        last_idx = range[1];
+    }
+
+    // Handle any remaining content after the last range
+    if last_idx < json.len() {
+        result.push_str("\"<REDACTED>\"");
+    }
+
+    result
+}
+
 fn main() {
     let json = r#"{"a": {"b":"c","d":1,"e":[{"f":"g"}]}}"#;
     let keys = ["a", "e"];
     let ranges = find_ranges(json, &keys);
-    println!("{:?}", ranges); // Expected: [[0, 11], [14, 19], [20, 38]]
+    println!("{:?}", ranges);
+
+    let result = redact_json(json, ranges);
+    // Parse the resultant string into a serde_json::Value
+    let parsed_value: Value = serde_json::from_str(&result).expect("Failed to parse JSON");
+    // Pretty print the JSON
+    let result =
+        serde_json::to_string_pretty(&parsed_value).expect("Failed to generate pretty JSON");
+    println!("{}", result);
 }
