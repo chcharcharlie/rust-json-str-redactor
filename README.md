@@ -120,33 +120,79 @@ Then it continued on improving with my help.
 
 Multiple tries to handle stach pushing correctly:
 
-baeb911517a1cb7464094e632944c3f5f939f63a
-d7cb53be6a796d0d2c0849245121f92a2e744418
-e8ecfdedea599e2293ae8675218164ff01d7f604
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/baeb911517a1cb7464094e632944c3f5f939f63a
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/d7cb53be6a796d0d2c0849245121f92a2e744418
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/e8ecfdedea599e2293ae8675218164ff01d7f604
 
 Introduced capture_all and brace/bracket_counts to deal with cases where entire subobject is included:
 
-b19d058f1e001350cc1cdf4a95ac0bb4f2d7cff8
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/b19d058f1e001350cc1cdf4a95ac0bb4f2d7cff8
 
 Debug closing double quotes:
 
-2e6aec83c75937008ba7e8ab4670896c75602cd2
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/2e6aec83c75937008ba7e8ab4670896c75602cd2
 
 Deal with capture_all on reverse brackets/braces:
 
-e95ab6471d6e01e0c5d5f99563df38211280eceb
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/e95ab6471d6e01e0c5d5f99563df38211280eceb
 
 Endless back and force debugging with the `capture_all` handling...
 
-9bf2d3e5536374861f18eb201a5f825722d6c081
-8a1d81eb03f118e142d16dcb47b87801ae726656
-175caf20f2e0a8076ab3c0ff223cac1931b2ab87
-e871d936f8ca7cf3ad5a1d0cb3383e164779f308
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/9bf2d3e5536374861f18eb201a5f825722d6c081
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/8a1d81eb03f118e142d16dcb47b87801ae726656
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/175caf20f2e0a8076ab3c0ff223cac1931b2ab87
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/e871d936f8ca7cf3ad5a1d0cb3383e164779f308
 
 Handle `in_string` correctly for brackets/braces:
 
-a5b2f620efedf1030fbba7468a3a8556401a8c3a
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/a5b2f620efedf1030fbba7468a3a8556401a8c3a
 
 Deal with structure symbols in string:
 
-14f8f64f1babef1a07807bb5218e69e2e41cea02
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/14f8f64f1babef1a07807bb5218e69e2e41cea02
+
+## Test cases
+At this point we've hit a milestone success, as all the key combinations of the first simple example I gave have passed. Now I wanted more test cases and maybe even a unit test written for me.
+
+So I asked
+```
+Great, now can you give me 3 other test cases, ideally it could cover any value types json can have. Let's not have any spaces in the structural parts of the JSON. For each test case, give me
+1. a JSON string
+2. 3 test key sequences
+3. Their corresponding correct output
+```
+
+chatGPT then spit out a few good test cases, with good coverage on multiple styles. For example:
+
+```
+{"name":"Alice","age":30,"contacts":[{"type":"email","value":"alice@email.com"},{"type":"phone","value":"123-456-7890"}],"isActive":true}
+["name"]
+["contacts", "type"]
+["isActive"]
+```
+
+However the expected outputs it gave were completely wrong:
+```
+[[0, 6], [7, 14]]
+[[15, 26], [27, 33], [34, 41], [42, 48], [49, 56], [57, 64]]
+[[65, 75], [76, 80]]
+```
+
+And no matter how I tried to educate it or have it explain to me why these answers are right or wrong, it could not walk straight.
+
+`At this point I was like back in my TA years, seeing students gone totally blank and fail to explain how they came up with their code that was copied from somewhere else. Except for this time, chatGPT did write the code itself. Or did it?`
+
+## Refinements
+I finally gave up educating it, and turned to ask it help me with some refinements and prettification of outputs so I can more easily manually examine whether the output was expected:
+
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/ec4f2dcca526086727a5a2b3c2b45e62d14e3d62
+
+## The last mile
+With the pretty printing, I was able to examine a few more test cases and of course found quite a few breaking points. But for the last mile, chatGPT wasn't able to help any further. The code turned too complex and even when I point to it exactly what could have gone wrong, the returned edits would not solve it and brings other breaking changes. I had to do the final debuggings and edits and I `think` I've finally made it work.
+
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/11ca28ac37a9cf6720c5b611cd981a1da14b69ea
+
+## Final thoughts
+I'm recording this as I found my experience for the past day pretty intriguring at least to myself. As I first get started and see the hundred line tedious char processing code appear to me within 10 seconds, I was a bit shocked. Later when I found out there are still so many bugs it can't find, or solutions it doesn't understand, I was both a bit annoyed, and a little celebrating inside. At the end, I think I kind of found the rhythm to work together with it, by knowing when I should say something, or when I should take over myself.
+
+At least for today, relying on chatGPT to code is definitely doable, but I would highly recommend that you read and understand the code yourself, and not expect it to magically complete everything for you. But with all the AI advancements this year, who knows what our workflow be like when it's chatGPT 5, 6, 7? Maybe we programmers really will be out of our jobs soon.
