@@ -31,6 +31,8 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                     }
                     start_idx = None;
                     capture_all = false;
+                } else if !capture_all {
+                    ranges.push([i, i + 1]);
                 }
             }
             '[' => {
@@ -48,6 +50,8 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                     }
                     start_idx = None;
                     capture_all = false;
+                } else if !capture_all {
+                    ranges.push([i, i + 1]);
                 }
             }
             ',' => {
