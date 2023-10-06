@@ -26,7 +26,9 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
             '}' => {
                 brace_count -= 1;
                 if capture_all && brace_count == 0 {
-                    ranges.push([start_idx.unwrap(), i + 1]);
+                    if let Some(start) = start_idx {
+                        ranges.push([start, i + 1]);
+                    }
                     start_idx = None;
                     capture_all = false;
                 }
@@ -41,7 +43,9 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
             ']' => {
                 bracket_count -= 1;
                 if capture_all && bracket_count == 0 {
-                    ranges.push([start_idx.unwrap(), i + 1]);
+                    if let Some(start) = start_idx {
+                        ranges.push([start, i + 1]);
+                    }
                     start_idx = None;
                     capture_all = false;
                 }
@@ -93,31 +97,36 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                 } else {
                     // Start of string
                     start_idx = Some(i);
-                    let next_double_quote = json[i + 1..].find('"').unwrap() + i + 1;
-                    let content = &json[i + 1..next_double_quote];
-                    if json[next_double_quote + 1..]
-                        .chars()
-                        .next()
-                        .unwrap_or_default()
-                        .is_whitespace()
-                    {
-                        let next_relevant_char = json[next_double_quote + 1..]
-                            .chars()
-                            .skip_while(|&ch| ch.is_whitespace())
-                            .next()
-                            .unwrap_or_default();
-                        is_key = next_relevant_char == ':';
-                    } else {
-                        is_key = json[next_double_quote + 1..]
+                    if let Some(next_double_quote) = json[i + 1..].find('"') {
+                        let next_double_quote = next_double_quote + i + 1;
+                        let content = &json[i + 1..next_double_quote];
+                        if json[next_double_quote + 1..]
                             .chars()
                             .next()
                             .unwrap_or_default()
-                            == ':';
+                            .is_whitespace()
+                        {
+                            let next_relevant_char = json[next_double_quote + 1..]
+                                .chars()
+                                .skip_while(|&ch| ch.is_whitespace())
+                                .next()
+                                .unwrap_or_default();
+                            is_key = next_relevant_char == ':';
+                        } else {
+                            is_key = json[next_double_quote + 1..]
+                                .chars()
+                                .next()
+                                .unwrap_or_default()
+                                == ':';
+                        }
+                        if is_key {
+                            stack.push(content.to_string());
+                        }
+                        skip_char = true;
+                    } else {
+                        // If there is no closing double quote, end the loop to prevent invalid behavior
+                        break;
                     }
-                    if is_key {
-                        stack.push(content.to_string());
-                    }
-                    skip_char = true;
                 }
                 in_string = !in_string;
             }
