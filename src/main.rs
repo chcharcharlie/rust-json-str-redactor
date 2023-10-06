@@ -1,6 +1,28 @@
 use serde_json::Value;
 use std::collections::HashSet;
 
+// Sample input:
+// let json = r#"{"name":"Alice","age":30,"contacts":[{"type":"email","value":"alice@email.com"},{"type":"phone","value":"123-456-7890"}],"isActive":true}"#;
+// let keys = [["contacts", "type"].to_vec(), ["name"].to_vec()];
+
+// Sample output:
+// [[0, 22], [24, 61], [78, 104], [118, 132], [136, 137]]
+// {
+//   "age": "<REDACTED>",
+//   "contacts": [
+//     {
+//       "type": "email",
+//       "value": "<REDACTED>"
+//     },
+//     {
+//       "type": "phone",
+//       "value": "<REDACTED>"
+//     }
+//   ],
+//   "isActive": "<REDACTED>",
+//   "name": "Alice"
+// }
+
 fn find_ranges(json: &str, target_keys_list: &[Vec<&str>]) -> Vec<[usize; 2]> {
     // Create a HashSet to store all the ranges
     let mut all_ranges = HashSet::new();
