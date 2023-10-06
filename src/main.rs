@@ -24,7 +24,7 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                 ranges.push([i, i + 1]);
 
                 // Pop the key from the stack after its value is processed
-                if (c == '}' || c == ']') && !in_string {
+                if (c == '}' || c == ']' || c == ',') && !in_string {
                     stack.pop();
                 }
             }
