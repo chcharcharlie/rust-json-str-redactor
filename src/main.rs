@@ -95,7 +95,22 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
         ranges.push([start, json.len()]);
     }
 
-    ranges
+    // Merge consecutive ranges
+    ranges.sort_by(|a, b| a[0].cmp(&b[0]));
+    let mut merged_ranges: Vec<[usize; 2]> = Vec::new();
+    for range in ranges {
+        if let Some(last_range) = merged_ranges.last_mut() {
+            if last_range[1] == range[0] {
+                last_range[1] = range[1];
+            } else {
+                merged_ranges.push(range);
+            }
+        } else {
+            merged_ranges.push(range);
+        }
+    }
+
+    merged_ranges
 }
 
 fn main() {
