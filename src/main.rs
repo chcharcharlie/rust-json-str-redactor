@@ -13,7 +13,7 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
         }
 
         match c {
-            '{' | '}' | '[' | ']' | ',' | ':' => {
+            '{' | '}' | '[' | ']' | ',' => {
                 // If we were processing a non-string value, capture its range
                 if let Some(start) = start_idx {
                     if stack == target_keys {
@@ -22,19 +22,19 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                     start_idx = None;
                 }
                 ranges.push([i, i + 1]);
-                if c == ':'
-                    && json[i + 1..]
-                        .chars()
-                        .next()
-                        .unwrap_or_default()
-                        .is_whitespace()
-                {
-                    // Include the space after the colon
-                    let space_length = json[i + 1..]
-                        .chars()
-                        .take_while(|&ch| ch.is_whitespace())
-                        .count();
-                    ranges.push([i + 1, i + 1 + space_length]);
+
+                // Pop key from stack after processing its value
+                if c == '}' || c == ']' {
+                    if is_key {
+                        stack.pop();
+                        is_key = false;
+                    }
+                }
+            }
+            ':' => {
+                if !in_string {
+                    ranges.push([i, i + 1]);
+                    is_key = false;
                 }
             }
             '"' => {
