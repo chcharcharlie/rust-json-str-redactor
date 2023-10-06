@@ -82,3 +82,10 @@ On the first try, it used my original solution, which is parsing the object, and
 https://github.com/chcharcharlie/rust-json-str-redactor/commit/7f2beac00af734c57788f6869b6ba4cb162f8c52
 
 This approach would not work however, because once you parse the JSON into an object, a lot of information were lost such as the sequence of the keys, format of some numeric values etc, and the returned ranges would not be correct to the original string.
+
+## Traversing char by char
+I gave the feedback to chatGPT and it understood, the next version it came up with is one that traverses the string char by char and handles each separately.
+
+https://github.com/chcharcharlie/rust-json-str-redactor/commit/88747ec7f670248728c99c76eae4fe8e3beeb6e1
+
+The program runs fine, and for a while I thought he already got it done.

@@ -1,71 +1,74 @@
-use serde_json::{Map, Value};
-
-fn find_ranges(json: &str, keys: &[&str]) -> Vec<[usize; 2]> {
-    let parsed: Value = serde_json::from_str(json).unwrap();
+fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
     let mut ranges = Vec::new();
-    traverse(&parsed, keys, &mut ranges, 0, Vec::new());
-    ranges
-}
+    let mut stack: Vec<String> = Vec::new();
+    let mut in_string = false;
+    let mut start_idx: Option<usize> = None;
+    let mut skip_char = false;
 
-fn traverse(
-    value: &Value,
-    keys: &[&str],
-    ranges: &mut Vec<[usize; 2]>,
-    pos: usize,
-    mut current_keys: Vec<&str>,
-) -> usize {
-    match value {
-        Value::Object(map) => {
-            let mut current_pos = pos + 1; // Opening brace '{'
-            for (key, val) in map {
-                let key_len = key.len() + 2; // For the quotes around the key
-                ranges.push([current_pos, current_pos + key_len]); // Include the key range
-                current_pos += key_len + 1; // Move past the key and the colon ':'
+    for (i, c) in json.chars().enumerate() {
+        if skip_char {
+            skip_char = false;
+            continue;
+        }
 
-                current_keys.push(key);
-                current_pos = traverse(val, keys, ranges, current_pos, current_keys.clone());
-                current_keys.pop();
-
-                if let Some(next_char) = map.get(&key) {
-                    current_pos += match next_char {
-                        Value::String(_) => 1,
-                        _ => 0,
-                    };
+        match c {
+            '{' | '}' | '[' | ']' | ',' | ':' => {
+                if !in_string {
+                    if let Some(start) = start_idx {
+                        if stack == target_keys {
+                            ranges.push([start, i]);
+                        }
+                        start_idx = None;
+                    }
+                    ranges.push([i, i + 1]);
                 }
-
-                current_pos += 1; // Move past the comma ',' or closing brace '}'
             }
-            current_pos
-        }
-        Value::Array(arr) => {
-            let mut current_pos = pos + 1; // Opening bracket '['
-            for val in arr {
-                current_pos = traverse(val, keys, ranges, current_pos, current_keys.clone());
-                current_pos += 1; // Move past the comma ',' or closing bracket ']'
+            '"' => {
+                if in_string {
+                    // End of string
+                    stack.pop();
+                    if let Some(start) = start_idx {
+                        ranges.push([start, i + 1]);
+                        start_idx = None;
+                    }
+                } else {
+                    // Start of string
+                    start_idx = Some(i);
+                    let next_double_quote = json[i + 1..].find('"').unwrap() + i + 1;
+                    let key = &json[i + 1..next_double_quote];
+                    stack.push(key.to_string());
+                    skip_char = true;
+                }
+                in_string = !in_string;
             }
-            current_pos
-        }
-        Value::String(s) => {
-            let len = s.len() + 2; // For the quotes around the string
-            if &current_keys[..] == keys {
-                ranges.push([pos, pos + len]);
+            _ => {
+                if !in_string {
+                    if start_idx.is_none() {
+                        start_idx = Some(i);
+                    }
+                    if c.is_whitespace() {
+                        if let Some(start) = start_idx {
+                            if stack == target_keys {
+                                ranges.push([start, i]);
+                            }
+                            start_idx = None;
+                        }
+                    }
+                }
             }
-            pos + len
-        }
-        _ => {
-            let s = value.to_string();
-            let len = s.len();
-            if &current_keys[..] == keys {
-                ranges.push([pos, pos + len]);
-            }
-            pos + len
         }
     }
+
+    if let Some(start) = start_idx {
+        ranges.push([start, json.len()]);
+    }
+
+    ranges
 }
 
 fn main() {
     let json = r#"{"a": {"b":"c","d":1,"e":[{"f":"g"}]}}"#;
     let keys = ["a", "d"];
     let ranges = find_ranges(json, &keys);
-    println!("{:?}", ranges);
+    println!("{:?}", ranges); // Expected: [[0, 11], [14, 31], [34, 38]]
 }
