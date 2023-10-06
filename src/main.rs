@@ -16,31 +16,35 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
         }
 
         match c {
-            '{' | '[' => {
+            '{' => {
                 if stack == target_keys {
                     capture_all = true;
                     start_idx = Some(i);
                 }
-                if !capture_all {
-                    ranges.push([i, i + 1]);
-                }
-                if c == '{' {
-                    brace_count += 1;
-                }
+                brace_count += 1;
+                ranges.push([i, i + 1]);
             }
-            '}' | ']' => {
-                if c == '}' {
-                    brace_count -= 1;
-                }
-                if capture_all && (brace_count == 0 || c == ']') {
-                    if let Some(start) = start_idx {
-                        ranges.push([start, i + 1]);
-                    }
-                    start_idx = None;
+            '}' => {
+                brace_count -= 1;
+                if capture_all && brace_count == 0 {
                     capture_all = false;
-                } else if !capture_all {
-                    ranges.push([i, i + 1]);
                 }
+                ranges.push([i, i + 1]);
+            }
+            '[' => {
+                if stack == target_keys {
+                    capture_all = true;
+                    start_idx = Some(i);
+                }
+                bracket_count += 1;
+                ranges.push([i, i + 1]);
+            }
+            ']' => {
+                bracket_count -= 1;
+                if capture_all && bracket_count == 0 {
+                    capture_all = false;
+                }
+                ranges.push([i, i + 1]);
             }
             '"' => {
                 if capture_all {
