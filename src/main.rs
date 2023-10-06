@@ -13,21 +13,28 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
         }
 
         match c {
-            '{' | '}' | '[' | ']' | ',' => {
-                if !in_string {
-                    if let Some(start) = start_idx {
-                        if stack == target_keys || is_key {
-                            ranges.push([start, i]);
-                        }
-                        start_idx = None;
+            '{' | '}' | '[' | ']' | ',' | ':' => {
+                // If we were processing a non-string value, capture its range
+                if let Some(start) = start_idx {
+                    if stack == target_keys {
+                        ranges.push([start, i]);
                     }
-                    ranges.push([i, i + 1]);
+                    start_idx = None;
                 }
-            }
-            ':' => {
-                if !in_string {
-                    ranges.push([i, i + 1]);
-                    is_key = false;
+                ranges.push([i, i + 1]);
+                if c == ':'
+                    && json[i + 1..]
+                        .chars()
+                        .next()
+                        .unwrap_or_default()
+                        .is_whitespace()
+                {
+                    // Include the space after the colon
+                    let space_length = json[i + 1..]
+                        .chars()
+                        .take_while(|&ch| ch.is_whitespace())
+                        .count();
+                    ranges.push([i + 1, i + 1 + space_length]);
                 }
             }
             '"' => {
@@ -78,12 +85,19 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                     if start_idx.is_none() {
                         start_idx = Some(i);
                     }
-                    if c.is_whitespace() {
-                        if let Some(start) = start_idx {
-                            if stack == target_keys {
-                                ranges.push([start, i]);
+                    // If it's the end of a non-string value, push it to ranges
+                    if let Some(next_char) = json[i + 1..].chars().next() {
+                        if next_char == ','
+                            || next_char == '}'
+                            || next_char == ']'
+                            || next_char.is_whitespace()
+                        {
+                            if let Some(start) = start_idx {
+                                if stack == target_keys {
+                                    ranges.push([start, i + 1]);
+                                }
+                                start_idx = None;
                             }
-                            start_idx = None;
                         }
                     }
                 }
