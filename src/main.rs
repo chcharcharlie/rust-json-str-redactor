@@ -33,14 +33,14 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
             '"' => {
                 if in_string {
                     // End of string
-                    if is_key {
-                        stack.pop();
-                    }
                     if let Some(start) = start_idx {
                         if stack == target_keys || is_key {
                             ranges.push([start, i + 1]);
                         }
                         start_idx = None;
+                    }
+                    if is_key {
+                        stack.pop();
                     }
                 } else {
                     // Start of string
