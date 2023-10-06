@@ -23,8 +23,10 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                         start_idx = Some(i);
                     }
                     brace_count += 1;
+                    ranges.push([i, i + 1]);
+                } else if capture_all {
+                    ranges.push([i, i + 1]);
                 }
-                ranges.push([i, i + 1]);
             }
             '}' => {
                 if !in_string {
@@ -32,8 +34,10 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                     if capture_all && brace_count == 0 {
                         capture_all = false;
                     }
+                    ranges.push([i, i + 1]);
+                } else if capture_all {
+                    ranges.push([i, i + 1]);
                 }
-                ranges.push([i, i + 1]);
             }
             '[' => {
                 if !in_string {
@@ -42,8 +46,10 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                         start_idx = Some(i);
                     }
                     bracket_count += 1;
+                    ranges.push([i, i + 1]);
+                } else if capture_all {
+                    ranges.push([i, i + 1]);
                 }
-                ranges.push([i, i + 1]);
             }
             ']' => {
                 if !in_string {
@@ -51,8 +57,10 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                     if capture_all && bracket_count == 0 {
                         capture_all = false;
                     }
+                    ranges.push([i, i + 1]);
+                } else if capture_all {
+                    ranges.push([i, i + 1]);
                 }
-                ranges.push([i, i + 1]);
             }
             ':' => {
                 if !in_string {
@@ -138,11 +146,9 @@ fn find_ranges(json: &str, target_keys: &[&str]) -> Vec<[usize; 2]> {
                             ranges.push([i, i + 1]);
                         }
                     }
-                } else {
+                } else if !in_string {
                     ranges.push([i, i + 1]);
-                    if !in_string {
-                        stack.pop();
-                    }
+                    stack.pop();
                 }
             }
 
