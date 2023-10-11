@@ -164,6 +164,7 @@ fn find_ranges(json: &str, target_keys_list: &[Vec<&str>]) -> Vec<[usize; 2]> {
                             if let Some(next_double_quote) = json[i + 1..].find('"') {
                                 let next_double_quote = next_double_quote + i + 1;
                                 let content = &json[i + 1..next_double_quote];
+                                // println!("Found string {}", content);
                                 if json[next_double_quote + 1..]
                                     .chars()
                                     .next()
@@ -186,7 +187,7 @@ fn find_ranges(json: &str, target_keys_list: &[Vec<&str>]) -> Vec<[usize; 2]> {
                                 if is_key {
                                     stack.push(content.to_string());
                                 }
-                                skip_char = true;
+                                // skip_char = true;
                             } else {
                                 // If there is no closing double quote, end the loop to prevent invalid behavior
                                 break;
@@ -218,7 +219,7 @@ fn find_ranges(json: &str, target_keys_list: &[Vec<&str>]) -> Vec<[usize; 2]> {
                 }
 
                 // For non-string values
-                ch if ch.is_numeric() || ch == '-' || ch == '.' => {
+                ch if !in_string && (ch.is_numeric() || ch == '-' || ch == '.') => {
                     if capture_all {
                         if start_idx.is_none() {
                             start_idx = Some(i);
